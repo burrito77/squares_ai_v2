@@ -7,91 +7,62 @@
  * win chance: after reaching optimal number of turns just cut of those, that have many answers
  * 
  */
-
+import { cloneWithStructuredClone, Player } from "../general_utils/utils";
 import { Board } from "../squares_game/board";
-import { Game } from "../squares_game/game";
+import {GameManager} from "../squares_game/gameManager";
+import { Move } from "../squares_game/Move";
 import { Color } from "../squares_game/Tile";
-import { Validator } from "../squares_game/validator";
 
-import { Move } from "./types";
 
 export class Chosé {
-    board: Board = new Board(0)
-    currentlyPlaying:boolean = false
-    validator: Validator = new Validator(this.board)
-    futureValidator = new Validator(this.copyBoard(this.board))
-    Preference_firstplayer = true;
-    constructor() {
-
+    ownGame:GameManager
+    board:Board
+    constructor(gameManager:GameManager) {
+        
+        let copy:GameManager =cloneWithStructuredClone(gameManager,GameManager)
+        this.ownGame=copy
+        this.board = copy.getBoard();
     }
-    /**
-     * load custom game, if params empty will create new one
-     * @param USN universal square notation
-     * @param game_ref reference to the game
-     */
-    public loadGame(USN?: string, game_ref?: Game) {
-
-        if (game_ref) {
-            this.buildGame(game_ref);
-            console.log("game builded...")
-        }
-        if (USN) {
-            this.buildGame_(USN);
-        }
-        this.futureValidator = new Validator(this.copyBoard(this.board))
-    }
+   
 
     /**
      * public interface to play round, after each of these plays, you will be given the best optimal play, if exists
      *
      */
     public playRound(move: Move, defaultDepth = 4): Move | undefined {
-        this.executeMove(move);
-        this.changePlayer();
-        return this.getNextBestMove(move,defaultDepth);
+        this.ownGame.playMove(move);
+        return this.getNextBestMove(move,defaultDepth)?.move;
     }
-
-    /**
-     * get best valued move at current position from current player pov
-     */
-    //public getNextBestMove():Move{}
-
- 
-
-    private changePlayer(){
-        this.currentlyPlaying = !this.currentlyPlaying
-    }
-
 
     //TODO the generation seems pretty sketchy, for some reason, it purposfuly skips many variants, to see which, just print at the end or floor
     //TODO even if we ignore this, for some reason the score information cannot get to output, the children are
     //TODO and there are much many more children than there should be
 
-    private runThroughAndAwardChildren(move: Move, depth: number, currentlyPlaying:boolean) {
+    private runThroughAndAwardChildren(move: ChainedMove, depth: number) {
         if (depth == 0) {
-            let tiles_num = this.futureValidator.game.getFreeTiles()
+            let tiles_num = this.board.getFreeTiles();
             let tiles_even = tiles_num%2==0
-            if(tiles_even&&currentlyPlaying){
+            if(tiles_even&&move.playedBy==Player.second){
                 move.status=-1;
             }
-            if(!tiles_even&&currentlyPlaying){
+            if(!tiles_even&&move.playedBy==Player.first){
                 move.status=1
             }
-             if(!tiles_even&&!currentlyPlaying){
+             if(!tiles_even&&move.playedBy==Player.second){
                 move.status=-1
             }
-            if(tiles_even&&!currentlyPlaying){
+            if(tiles_even&&move.playedBy==Player.first){
                 move.status=1
             }
-            this.futureValidator.game.renderBoard();
+            //this.futureValidator.game.renderBoard();
             return;
         }
-        this.changePlayer()
-        let children: Move[] = this.generateAllValidMoves(this.futureValidator.game)
-
+        
+        let children: Move[] = this.ownGame.generateAllValidMoves(this.board)
+        
         if (children.length == 0) {
-            //we ended
-            if (!currentlyPlaying) {
+            //we ended and latest move was first player 
+            if (move.playedBy==Player.first) {
                 move.status = 1
             } else {
                 move.status = -1
@@ -101,34 +72,34 @@ export class Chosé {
         let min: number = 1
         let max: number = -1
         children.forEach((child) => {
-
+            let childChain = new ChainedMove(child,move.playedBy==Player.first ? Player.second : Player.second,move,0);
             /**
              * recursively simulate turns
              */
-            this.executeMove(move)
-            this.runThroughAndAwardChildren(child, depth - 1,currentlyPlaying);
-            this.moveBack(move);
-            this.changePlayer()
+            this.ownGame.playMove(child);
+            this.runThroughAndAwardChildren(childChain, depth - 1);
+            this.ownGame.undoLastMove();
+            
 
-            max = Math.max(child.status, max);
-            min = Math.min(child.status, min);
+            max = Math.max(childChain.status, max);
+            min = Math.min(childChain.status, min);
             //the first player plays, so take the highest
-            if (!currentlyPlaying) {
+            if (childChain.playedBy==Player.first) {
                 move.status = max;
             }
             //the second player plays, so take the lowest
-            if (currentlyPlaying) {
+            if (childChain.playedBy==Player.second) {
                 move.status = min
             }
 
             //if child is good for player 1 then add him to next move
-            if (child.status == 1 && !currentlyPlaying) {
-                move.childrMoves.push(child);
+            if (childChain.status == 1 && childChain.playedBy==Player.first) {
+                move.childMoves.push(childChain);
             }
 
             //if child is good for player 2 then add him to next move
-            if (child.status == -1 && currentlyPlaying) {
-                move.childrMoves.push(child);
+            if (childChain.status == -1 && childChain.playedBy==Player.second) {
+                move.childMoves.push(childChain);
             }
         })
         
@@ -154,16 +125,16 @@ export class Chosé {
      *  !!so basically 1 + (-1) = their min or max depending who plays
      *  now its important to create that tree of decision to be able to see as furtherst away, and use optimalization during this
      *      */
-    private getNextBestMove(move: Move,defaultDepth=4): Move | undefined {
+    private getNextBestMove(move: Move,defaultDepth=4): ChainedMove | undefined {
+        let toret:ChainedMove|undefined = new ChainedMove(move,this.ownGame.getCurrentPlayer(),undefined,0);
+        this.runThroughAndAwardChildren(toret, defaultDepth);
         
-        this.runThroughAndAwardChildren(move, defaultDepth,this.currentlyPlaying);
-        let toret:Move|undefined = undefined;
-    
+        
         //after this move is populated by score
         //as long as one's are taken you cannot lose
-        move.childrMoves.forEach((move_child) => {
+        toret.childMoves.forEach((move_child) => {
            
-         if(!this.currentlyPlaying){
+         if(this.ownGame.getCurrentPlayer()){
             if(move_child.status==1){
                 toret = move_child;
             }
@@ -180,87 +151,21 @@ export class Chosé {
 
 
 
-    /**
-     * generetae ALL valid moves (at the current round) for the board provided
-     * @param board 
-     * @returns 
-     */
-    private generateAllValidMoves(board: Board): Move[] {
-        let ret: Move[] = []
-        for (let y = 1; y < board.boardSize + 1; y++) {
-            for (let x = 1; x < board.boardSize + 1; x++) {
-                ret.push(...this.getColorVariantsOfAMove(x, y))
-            }
-        }
-        return ret.filter((move) => { return this.isValidMove(move) })
+  
+
+   
+}
+
+class ChainedMove{
+    move:Move;
+    playedBy:Player;
+    childMoves:ChainedMove[]=[];
+    previousMove:ChainedMove|undefined;
+    status:number;
+    constructor(move:Move,playedBy:Player,previousMove:ChainedMove|undefined,status:number=0){
+        this.move=move;
+        this.playedBy = playedBy;
+        this.previousMove = previousMove;
+        this.status=status;
     }
-
-
-    private getColorVariantsOfAMove(x: number, y: number): Move[] {
-        return [
-            { x: x, y: y, color: Color.red, childrMoves: [], status: 0, previousMove: undefined },
-            { x: x, y: y, color: Color.green, childrMoves: [], status: 0, previousMove: undefined },
-            { x: x, y: y, color: Color.blue, childrMoves: [], status: 0, previousMove: undefined },
-            { x: x, y: y, color: Color.yellow, childrMoves: [], status: 0, previousMove: undefined }
-        ]
-    }
-
-    private isValidMove(move: Move): Boolean {
-        if (this.futureValidator.isValid(move.color, move.x, move.y)) {
-            return true;
-        }
-    }
-    private executeMove(move: Move) {
-        //play the playable moves
-        this.futureValidator.game.setColorAt(move.x, move.y, move.color);
-        this.futureValidator.setTurnEffects(move.color, move.x, move.y);
-    }
-    private moveBack(move: Move) {
-        //remove the play
-        this.futureValidator.game.setColorAt(move.x, move.y, Color._none);
-        this.futureValidator.removeTurnEffects(move.x, move.y);
-    }
-
-
-
-    /**
-     * build game from reference
-     * @param game_ref 
-     */
-    private buildGame(game_ref: Game) {
-        let b = new Board(game_ref.game.boardSize);
-        for (let y = 1; y < game_ref.game.boardSize + 1; y++) {
-            for (let x = 1; x < game_ref.game.boardSize + 1; x++) {
-                b.setColorAt(x, y, game_ref.game.getColorAt(x, y))
-            }
-        }
-        this.currentlyPlaying = game_ref.startingPlayer==1;
-        this.board = b;
-        this.validator = new Validator(this.board);
-    }
-
-    private buildGame_(USN: string) {
-        //hell naw
-    }
-
-    private copyBoard(board: Board): Board {
-        let b = new Board(board.boardSize);
-        for (let y = 1; y < board.boardSize + 1; y++) {
-            for (let x = 1; x < board.boardSize + 1; x++) {
-                b.setColorAt(x, y, board.getColorAt(x, y))
-            }
-        }
-        return b
-    }
-
-    private modifyBoard(board: Board, moves: Move[]): Board {
-        let b = this.copyBoard(board);
-        moves.forEach((move: Move) => {
-            b.setColorAt(move.x, move.y, move.color);
-        })
-        return b;
-    }
-
-
-
 }

@@ -1,12 +1,14 @@
 import * as readline from "readline";
-import {Chosé} from "../squares_bot/chose"
+//import {Chosé} from "../squares_bot/chose"
 import { Board } from "./board";
-import { Game } from "./game";
 import { Color } from "./Tile";
-import { Move } from "../squares_bot/types";
-let game = new Game(new Board(3));
-let cheater = new Chosé();
-cheater.loadGame(undefined,game);
+import { GameManager } from "./gameManager";
+import { Move } from "./Move";
+import { renderBoard } from "../general_utils/utils";
+import {Chosé} from "../squares_bot/chose";
+let game = new GameManager(new Board(5));
+let cheater = new Chosé(game);
+//cheater.loadGame(undefined,game);
 const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout
@@ -33,11 +35,12 @@ function askMove() {
             console.log("Invalid input. Format: x y color(r-y)");
         } else {
             console.log("#############")
-            game.playNext(colorMap[c], x, y);
+            game.playMove(new Move(x,y,colorMap[c]));
+            renderBoard(game);
             console.log("##############")
-            console.log("Now playing: PLAYER "+(game.startingPlayer%2 + 1))
+            console.log("Now playing: PLAYER "+(game.getCurrentPlayer()))
             //cheats here
-           let move:Move|undefined = cheater.playRound({x:x,y:y,color:colorMap[c],previousMove:undefined,childrMoves:[],status:0},8)
+            let move:Move|undefined = cheater.playRound(new Move(x,y,colorMap[c]),8)
            
            if(move!==undefined){
                 console.log(`Optimální odpověď na tento tah by mělo být ${move.x} ${move.y} ${move.color}`)

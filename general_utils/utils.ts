@@ -1,7 +1,7 @@
 import { Board } from "../squares_game/board";
-import {Game} from "../squares_game/game"
+import { GameManager } from "../squares_game/gameManager";
 import { Color } from "../squares_game/Tile";
-export function gameToUSN(game:Game):string{
+/*export function gameToUSN(game:Game):string{
     let ret:string = "";
     let colorMap: Record<Color, string> = {
         [Color.red]: "R",
@@ -23,3 +23,31 @@ export function gameToUSN(game:Game):string{
     ret+=p.toString();
     return ret;
     }
+*/
+export enum Player{
+    first = 1,
+    second = 2
+}
+export function getInverseColor(c:Color):Color{
+    if(c===Color._black)return Color._none
+    if(c===Color._blocked)return Color._none
+    if(c===Color._none)return Color._blocked
+    if(c>0)return Color._none;
+}
+
+export function renderBoard(g:GameManager){
+    g.getBoard().renderBoard();
+}
+
+export function cloneWithStructuredClone<T>(instance: T, ctor: new (...args: any[]) => T): T {
+    // Deep clone the instance’s own properties
+    const clonedProps = structuredClone(instance);
+
+    // Create a new instance using the class constructor
+    const newInstance = Object.create(ctor.prototype) as T;
+
+    // Assign all cloned properties to the new instance
+    Object.assign(newInstance, clonedProps);
+
+    return newInstance;
+}
