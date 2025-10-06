@@ -3,6 +3,7 @@ import { Board } from "./board";
 import { Move } from "./Move";
 import { Color, Tile } from "./Tile";
 import { Player } from "../general_utils/utils"
+import { GAMESIZE } from "./main";
 export class GameManager{
    private board:Board
    private moves:Move[] = []
@@ -13,7 +14,7 @@ export class GameManager{
     constructor(board?:Board,startingPlyer:Player=1,USN?:string){
         this.board = board;
         if(!board&&!USN){
-            this.board = new Board(5);
+            this.board = new Board(GAMESIZE);
         }
         if(USN){
             
@@ -197,8 +198,15 @@ export class GameManager{
     private removeTurnEffects(x:number, y:number){
         for (let i = 1; i < this.board.boardSize + 1; i++) {
             for (let j = 1; j < this.board.boardSize + 1; j++) {
-                if ((this.isValid(Color.red, j, i) || this.isValid(Color.blue, j, i) || this.isValid(Color.yellow, j, i) || this.isValid(Color.green, j, i)) && this.board.getColorAt(j, i) === Color._blocked) {
-                    this.board.setColorAt(j, i, Color._none)
+                let blocked = this.board.getColorAt(j, i) === Color._blocked;
+                if(blocked){
+                    this.board.setColorAt(j,i,Color._none);
+                      let colorValid = (this.isValid(Color.red, j, i) || this.isValid(Color.blue, j, i) || this.isValid(Color.yellow, j, i) || this.isValid(Color.green, j, i));
+                      if(colorValid){
+                        continue;
+                      }else{
+                        this.board.setColorAt(j,i,Color._blocked);
+                      }
                 }
             }
         }

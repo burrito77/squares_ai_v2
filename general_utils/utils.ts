@@ -39,6 +39,12 @@ export function renderBoard(g:GameManager){
     g.getBoard().renderBoard();
 }
 
+const enableLogs = true;
+export function log(s:string){
+    if(!enableLogs){return;}
+    console.log(s);
+}
+
 export function cloneWithStructuredClone<T>(instance: T, ctor: new (...args: any[]) => T): T {
     // Deep clone the instance’s own properties
     const clonedProps = structuredClone(instance);
