@@ -22,8 +22,6 @@ function askMove() {
         let y = parseInt(ys, 10);
         let c = cs
         
-        
-           
         // map input 1-4 to Color
         let colorMap: Record<string, Color> = {
             r: Color.red,
@@ -46,8 +44,8 @@ function askMove() {
             console.log("##############")
             console.log("Now playing: PLAYER "+(game.getCurrentPlayer()))
             //cheats here
-            let move:Move|undefined = cheater.playRound(new Move(x,y,colorMap[c]),15)
-            console.log(`all: ${cheater.possibleMovesCount} wind: ${cheater.winDistribution}%`);
+            let move:Move|undefined = cheater.playRound(new Move(x,y,colorMap[c]),15,1)
+            console.log(`all nodes: ${cheater.possibleMovesCount} | wins for player 1: ${cheater.winDistribution*100}%} | all visible nodes ${"-"}%`);
             renderBoard(game);
            if(move!==undefined){
                 console.log(`Optimální odpověď na tento tah by mělo být ${move.x} ${move.y} ${move.color}`);

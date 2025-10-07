@@ -40,7 +40,6 @@ export class GameManager{
      * @returns all of these return NONE color if neighbour is not existent
      */
     private getBottomNeighbourColor(x:number,y:number):Color{
-     
         return this.board.getColorAt(x,y+1)
     }
       /**
@@ -50,7 +49,6 @@ export class GameManager{
      * @returns all of these return NONE color if neighbour is not existent
      */
     private getLeftNeighbourColor(x:number,y:number):Color{
-       
         return this.board.getColorAt(x-1,y)
     }
       /**
@@ -60,7 +58,6 @@ export class GameManager{
      * @returns all of these return NONE color if neighbour is not existent
      */
     private getRightNeighbourColor(x:number,y:number):Color{
-       
         return this.board.getColorAt(x+1,y)
     }
 
@@ -162,7 +159,6 @@ export class GameManager{
             return false;
         }
 
-
         //then compare if there is friendly color
         let result = this.friendlyColors(top, color) && this.friendlyColors(bot, color) && this.friendlyColors(right, color) && this.friendlyColors(left, color)
         if (result) {
@@ -170,7 +166,6 @@ export class GameManager{
         } else {
             return false;
         }
-
     }
 
 
