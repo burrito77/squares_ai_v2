@@ -4,9 +4,9 @@ import { Board } from "./board";
 import { Color } from "./Tile";
 import { GameManager } from "./gameManager";
 import { Move } from "./Move";
-import { renderBoard } from "../general_utils/utils";
+import { Player, renderBoard } from "../general_utils/utils";
 import {Chosé} from "../squares_bot/chose";
-export const GAMESIZE = 3;
+export const GAMESIZE = 2;
 let game = new GameManager(new Board(GAMESIZE));
 let cheater = new Chosé(game);
 //cheater.loadGame(undefined,game);
@@ -44,7 +44,7 @@ function askMove() {
             console.log("##############")
             console.log("Now playing: PLAYER "+(game.getCurrentPlayer()))
             //cheats here
-            let move:Move|undefined = cheater.playRound(new Move(x,y,colorMap[c]),15,1)
+            let move:Move|undefined = cheater.getBestMove(new Move(x,y,colorMap[c]),15)
             console.log(`all nodes: ${cheater.possibleMovesCount} | wins for player 1: ${cheater.winDistribution*100}%} | all visible nodes ${"-"}%`);
             renderBoard(game);
            if(move!==undefined){
